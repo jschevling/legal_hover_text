@@ -1,0 +1,24 @@
+{
+  "name": "legal_hover_text",
+  "version": "1.0.0",
+  "description": "A small JavaScript module for creating dynamic hover text for large, legal disclaimer-type display using data attributes.",
+  "main": "demo.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jschevling/legal_hover_text.git"
+  },
+  "keywords": [
+    "hover_text",
+    "javascript",
+    "module"
+  ],
+  "author": "Jeremy Skjevling",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jschevling/legal_hover_text/issues"
+  },
+  "homepage": "https://github.com/jschevling/legal_hover_text#readme"
+}
