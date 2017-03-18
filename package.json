@@ -20,5 +20,13 @@
   "bugs": {
     "url": "https://github.com/jschevling/legal_hover_text/issues"
   },
-  "homepage": "https://github.com/jschevling/legal_hover_text#readme"
+  "homepage": "https://github.com/jschevling/legal_hover_text#readme",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-changed": "^2.0.0",
+    "gulp-connect": "^5.0.0",
+    "gulp-livereload": "^3.8.1",
+    "gulp-sass": "^3.1.0",
+    "sassdoc": "^2.2.0"
+  }
 }
