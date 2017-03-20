@@ -66,6 +66,7 @@
     bindListeners: function bindListeners () {
       document.addEventListener('mouseover', this.parseHoverTarget.bind(this), false);
       document.addEventListener('mouseout', this.parseClearTarget.bind(this), false);
+      document.addEventListener('click', this.parseClearTarget.bind(this), false);
     },
     /* The hover text uses CSS transitions for animation, so by applying a solid opacity, we fade it onscreen */
     fadeHover: function fadeHover () {
