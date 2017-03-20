@@ -1,110 +1,182 @@
-(function(){
-    'use strict';
+/* global Element */
 
-    var hover = {
+(function () {
+  'use strict';
 
-        currentHover: {},
-
-        isHovering: false,
-
-        hoverElement: {},
-
-        polyfills: function polyfills() {
-            // matches
-            if (!Element.prototype.matches) {
-                Element.prototype.matches =
-                    Element.prototype.matchesSelector ||
-                    Element.prototype.mozMatchesSelector ||
-                    Element.prototype.msMatchesSelector ||
-                    Element.prototype.oMatchesSelector ||
-                    Element.prototype.webkitMatchesSelector ||
-                    function (s) {
-                        var matches = (this.document || this.ownerDocument).querySelectorAll(s),
-                            i = matches.length;
-
-                        while (--i >= 0 && matches.item(i) !== this) {}
-                        return i > -1;
-                    };
-            }
+  var hover = {
+    /* The body element that the hover text will be appended to */
+    docBody: document.querySelector('body'),
+    /* An object to hold the dimensions surrounding the related link or button, for determining
+     * the most effective hover text placement to ensure full viewport visibility */
+    surrDimensions: {},
+    /* An object to hold the widest and tallest dimension around the related link or button in
+     * the viewport */
+    maxDimensions: {},
+    /* A debugging tool to visually see the dimensions that are being chosen for hoverText placement */
+    rulers: {},
+    /* Since the hoverText is displayed after a delay, this boolean ensures the mouse is still hovering
+     * over the link or button */
+    isHovering: false,
+    /* The hoverText element built by the triggerHover method, we keep a reference for many reasons, but
+     * one of the most important is the ability to remove the hoverText on mouseOut */
+    hoverElement: {},
+    /* Configurable wait time for display delay */
+    waitTime: 2000,
+    /* Method for applying any needed polyfills */
+    polyfills: function polyfills () {
+      /* We need to make sure Element.matches is implemented, so we use this polyfill */
+      if (!Element.prototype.matches) {
+        Element.prototype.matches =
+          Element.prototype.matchesSelector ||
+          Element.prototype.mozMatchesSelector ||
+          Element.prototype.msMatchesSelector ||
+          Element.prototype.oMatchesSelector ||
+          Element.prototype.webkitMatchesSelector ||
+          function (s) {
+            var matches = (this.document || this.ownerDocument).querySelectorAll(s);
+            var i = matches.length;
+            while (--i >= 0 && matches.item(i) !== this) {}
+            return i > -1;
+          };
+      }
+    },
+    /* This method is called on mouseOver to ensure the target matches the desired selector */
+    parseHoverTarget: function parseHoverTarget (e) {
+      for (var target = e.target; target && target !== this; target = target.parentNode) {
+        /* Loop parent nodes from the target to the delegation node */
+        try {
+          if (target.matches('.hover-element')) {
+            this.isHovering = true;
+            this.triggerHover(target, e);
+            break;
+          }
+        } catch (e) {
+          /* suppress errors */
+        }
+      }
+    },
+    /* This method is called on mouseOut to ensure the target matches the desired selector */
+    parseClearTarget: function parseClearTarget (e) {
+      for (var target = e.target; target && target !== this; target = target.parentNode) {
+        /* Loop parent nodes from the target to the delegation node */
+        try {
+          if (target.matches('.hover-element')) {
+            this.isHovering = false;
+            this.clearHover(target, e);
+            break;
+          }
+        } catch (e) {
+          /* suppress errors */
+        }
+      }
+    },
+    /* Bind the listeners to the document for delegation */
+    bindListeners: function bindListeners () {
+      document.addEventListener('mouseover', this.parseHoverTarget.bind(this), false);
+      document.addEventListener('mouseout', this.parseClearTarget.bind(this), false);
+    },
+    /* The hover text uses CSS transitions for animation, so by applying a solid opacity, we fade it onscreen */
+    fadeHover: function fadeHover () {
+      this.hoverElement.style.opacity = '1';
+    },
+    /* Helper function. Tests two dimensions and returns the larger of the two */
+    testPoints: function testPoints (p1, p2) {
+      return p1 > p2 ? p1 : p2;
+    },
+    /* Method for calculating the distance to viewport bounds from the target element, used for placing hoverText */
+    findMax: function findMax (eTop, eLeft, eBottom, eRight, viewWidth, viewHeight) {
+      return {
+        max: {
+          width: this.testPoints(eLeft, (viewWidth - eRight)),
+          height: this.testPoints(eTop, (viewHeight - eBottom))
         },
+        surr: {
+          top: eTop,
+          left: eLeft,
+          bottom: viewHeight - eBottom,
+          right: viewWidth - eRight
+        }
+      };
+    },
+    /* Mount and display the hover text */
+    mountHover: function mountHover (target, relativePosition, w, h) {
+      if (this.isHovering) {
+        this.docBody.appendChild(this.hoverElement);
+        this.hoverElement.style.display = 'block';
+        /* Calculate where the text will fit best and position accordingly. First, compare the max width value
+         * against the space to the left of the target element to see if that's the widest dimension */
+        if (this.maxDimensions.width === relativePosition.left) {
+          /* Make sure the text will fit in the available space, but place it at the left viewport edge
+           * if it exceeds the available space. */
+          if (this.maxDimensions.width >= this.hoverElement.offsetWidth) {
+            /* Text will fit, so align right edge to left edge of target element */
+            this.hoverElement.style.left = (this.maxDimensions.width - this.hoverElement.offsetWidth).toString() + 'px';
+          } else {
+            /* Text won't fit, align to viewport left */
+            this.hoverElement.style.left = '0px';
+          }
+        } else {
+          /* Right space is widest dimension, so check if text will fit */
+          if (this.maxDimensions.width >= this.hoverElement.offsetWidth) {
+            /* Text will fit, so we align left edge to the right edge of target element */
+            this.hoverElement.style.left = Math.floor(relativePosition.right).toString() + 'px';
+          } else {
+            /* Text won't fit, so we align the right edge to the right edge of the viewport */
+            this.hoverElement.style.left = w - this.hoverElement.offsetWidth.toString() + 'px';
+          }
+        }
+        /* Check if the top space is the tallest dimension */
+        if (this.maxDimensions.height === relativePosition.top) {
+          /* Top is tallest, see if text will fit */
+          if (this.maxDimensions.height >= this.hoverElement.offsetHeight) {
+            /* Text fits, so position above the target element */
+            this.hoverElement.style.top = (this.maxDimensions.height - this.hoverElement.offsetHeight).toString() + 'px';
+          } else {
+            /* Text does not fit, so position at top of viewport */
+            this.hoverElement.style.top = '0px';
+          }
+        } else {
+          /* Bottom is tallest, see if test will fit */
+          if (this.maxDimensions.height >= this.hoverElement.offsetHeight) {
+            /* Text will fit, so position hoverText below target element */
+            this.hoverElement.style.top = Math.floor(relativePosition.bottom).toString() + 'px';
+          } else {
+            /* Text won't fit, so position at the bottom of the viewport */
+            this.hoverElement.style.top = h - this.hoverElement.offsetHeight.toString() + 'px';
+          }
+        }
+        setTimeout(this.fadeHover.bind(this), 100);
+      }
+    },
+    /* Called on mouseOver when target element matches a link or button with associated hover text */
+    triggerHover: function triggerHover (target, e) {
+      var relativePosition = target.getBoundingClientRect();
+      var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
+      var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+      var hoverText = target.getAttribute('data-hover-content');
 
-        parseHoverTarget: function parseHoverTarget(e) {
-            for (var target=e.target; target && target!=this; target=target.parentNode) {
-                // loop parent nodes from the target to the delegation node
-                try {
-                    if (target.matches('.hover-element')) {
-                        this.isHovering = true;
-                        this.triggerHover.apply(this, [target, e]);
-                        break;
-                    }
-                }
-                catch (e) {
-                    //suppress errors
-                }
-            }
-        },
+      /* Calculate dimensions and max dimensions */
+      var returnValues = this.findMax(relativePosition.top, relativePosition.left, relativePosition.bottom, relativePosition.right, w, h);
+      /* Apply results for later reference by mountHover method */
+      this.maxDimensions = returnValues.max;
+      this.surrDimensions = returnValues.surr;
+      /* Generate the hoverText element */
+      this.hoverElement = document.createElement('div');
+      this.hoverElement.innerHTML = hoverText;
+      this.hoverElement.classList.add('hover-block');
+      /* After the specified wait time, show the hoverText */
+      setTimeout(this.mountHover.bind(this, target, relativePosition, w, h), this.waitTime);
+    },
+    /* Remove the hover text on mouseOut */
+    clearHover: function clearHover (target, e) {
+      this.docBody.removeChild(this.hoverElement);
+    },
+    /* Initialization steps */
+    initialize: function initialize () {
+      this.polyfills();
+      this.bindListeners();
+    }
+  };
 
-        parseClearTarget: function parseClearTarget(e) {
-            for (var target=e.target; target && target!=this; target=target.parentNode) {
-                // loop parent nodes from the target to the delegation node
-                try {
-                    if (target.matches('.hover-element')) {
-                        this.isHovering = false;
-                        this.clearHover.apply(this, [target, e]);
-                        break;
-                    }
-                }
-                catch (e) {
-                    //suppress errors
-                }
-            }
-        },
-
-        bindListeners: function bindListeners() {
-            document.addEventListener('mouseover', this.parseHoverTarget.bind(this), false);
-            document.addEventListener('mouseout', this.parseClearTarget.bind(this), false);
-        },
-
-        fadeHover: function fadeHover(){
-            this.hoverElement.style.opacity = '1';
-        },
-
-        mountHover: function mountHover(target){
-            if (this.isHovering) {
-                console.log(target);
-                console.log(this.hoverElement);
-                document.querySelector('body').appendChild(this.hoverElement);
-                this.hoverElement.style.display = 'block';
-                setTimeout(this.fadeHover.bind(this), 100);
-            }
-        },
-
-        triggerHover: function triggerHover(target, e) {
-            console.log(this.isHovering);
-            var relativePosition = target.getBoundingClientRect(),
-                w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0),
-                h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0),
-                hoverText = target.getAttribute('data-hover-content');
-
-            this.hoverElement = document.createElement('div');
-            this.hoverElement.innerHTML = hoverText;
-            this.hoverElement.classList.add('hover-block');
-
-            setTimeout(this.mountHover.bind(this, target), 2000);
-        },
-
-        clearHover: function clearHover (target, e) {
-            document.querySelector('body').removeChild(this.hoverElement);
-        },
-
-        initialize: function initialize() {
-            this.polyfills();
-            this.bindListeners();
-        },
-
-
-    };
-
-    hover.initialize();
-
+  hover.initialize();
 }());
