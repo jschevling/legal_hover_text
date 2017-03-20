@@ -6,23 +6,22 @@
   var hover = {
     /* The body element that the hover text will be appended to */
     docBody: document.querySelector('body'),
-    /* An object to hold the dimensions surrounding the related link or button, for determining
-     * the most effective hover text placement to ensure full viewport visibility */
+    /* Holds the dimensions from the edges of the target element to the edge of the viewport */
     surrDimensions: {},
-    /* An object to hold the widest and tallest dimension around the related link or button in
-     * the viewport */
+    /* Holds the widest and tallest dimension around the related link or button in the viewport */
     maxDimensions: {},
     /* A debugging tool to visually see the dimensions that are being chosen for hoverText placement */
     rulers: {},
-    /* Since the hoverText is displayed after a delay, this boolean ensures the mouse is still hovering
-     * over the link or button */
+    /* Is the mouse still in hover state, used for check after delay */
     isHovering: false,
-    /* The hoverText element built by the triggerHover method, we keep a reference for many reasons, but
-     * one of the most important is the ability to remove the hoverText on mouseOut */
+    /* The hoverText element built by the triggerHover method, we keep a reference so we can
+     * remove the hoverText on mouseOut */
     hoverElement: {},
-    /* Configurable wait time for display delay */
+    /* Delay hovertext display by this amount (milliseconds) */
     waitTime: 2000,
-    /* Method for applying any needed polyfills */
+    /* If set to true, use the mouse coordinates instead of the target element position */
+    useMouseCoords: false,
+
     polyfills: function polyfills () {
       /* We need to make sure Element.matches is implemented, so we use this polyfill */
       if (!Element.prototype.matches) {
@@ -40,14 +39,14 @@
           };
       }
     },
-    /* This method is called on mouseOver to ensure the target matches the desired selector */
-    parseHoverTarget: function parseHoverTarget (e) {
+    /* General method for mouse events, takes a callback and isHovering value as args */
+    parseTarget: function parseTarget (e, callback, hoverState) {
       for (var target = e.target; target && target !== this; target = target.parentNode) {
         /* Loop parent nodes from the target to the delegation node */
         try {
           if (target.matches('.hover-element')) {
-            this.isHovering = true;
-            this.triggerHover(target, e);
+            this.isHovering = hoverState;
+            callback.apply(this, [target, e]);
             break;
           }
         } catch (e) {
@@ -55,20 +54,13 @@
         }
       }
     },
+    /* This method is called on mouseOver to ensure the target matches the desired selector */
+    parseHoverTarget: function parseHoverTarget (e) {
+      this.parseTarget.apply(this, [e, this.triggerHover, true]);
+    },
     /* This method is called on mouseOut to ensure the target matches the desired selector */
     parseClearTarget: function parseClearTarget (e) {
-      for (var target = e.target; target && target !== this; target = target.parentNode) {
-        /* Loop parent nodes from the target to the delegation node */
-        try {
-          if (target.matches('.hover-element')) {
-            this.isHovering = false;
-            this.clearHover(target, e);
-            break;
-          }
-        } catch (e) {
-          /* suppress errors */
-        }
-      }
+      this.parseTarget.apply(this, [e, this.clearHover, false]);
     },
     /* Bind the listeners to the document for delegation */
     bindListeners: function bindListeners () {
@@ -150,7 +142,17 @@
     },
     /* Called on mouseOver when target element matches a link or button with associated hover text */
     triggerHover: function triggerHover (target, e) {
-      var relativePosition = target.getBoundingClientRect();
+      var relativePosition = {};
+      if (this.useMouseCoords) {
+        relativePosition = {
+          top: e.clientY,
+          left: e.clientX,
+          bottom: e.clientY + 1,
+          right: e.clientX + 1
+        };
+      } else {
+        relativePosition = target.getBoundingClientRect();
+      }
       var w = Math.max(document.documentElement.clientWidth, window.innerWidth || 0);
       var h = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
       var hoverText = target.getAttribute('data-hover-content');

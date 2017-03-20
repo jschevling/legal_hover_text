@@ -415,8 +415,8 @@ template {
 .demo__q1, .demo__q2, .demo__q3, .demo__q4 {
   position: relative;
   display: inline-block;
-  width: 47.5vw;
-  height: 47.5vh;
+  width: 47vw;
+  height: 47vh;
   background-color: #CCC;
   margin: 1vh 1vw;
   padding: 1.5vh 1.5vw;
