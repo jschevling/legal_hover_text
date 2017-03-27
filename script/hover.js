@@ -38,35 +38,32 @@
             return i > -1;
           };
       }
+       // closest polyfill
+        Element.prototype.closest = Element.prototype.closest ||
+          function (selector) {
+            var el = this;
+
+            while (el.matches && !el.matches(selector)) el = el.parentNode;
+            return el.matches ? el : null;
+        };
+
     },
-    /* General method for mouse events, takes a callback and isHovering value as args */
-    parseTarget: function parseTarget (e, callback, hoverState) {
-      for (var target = e.target; target && target !== this; target = target.parentNode) {
-        /* Loop parent nodes from the target to the delegation node */
-        try {
-          if (target.matches('.hover-element')) {
-            this.isHovering = hoverState;
-            callback.apply(this, [target, e]);
-            break;
-          }
-        } catch (e) {
-          /* suppress errors */
+    toggleHover: function toggleHover (hoverState, e) {
+      var hoverElement = e.target.closest('.hover-element');
+      if (hoverElement) {
+        this.isHovering = hoverState;
+        if (hoverState) {
+          this.triggerHover(hoverElement, e);
+        } else {
+          this.clearHover(hoverElement, e);
         }
       }
     },
-    /* This method is called on mouseOver to ensure the target matches the desired selector */
-    parseHoverTarget: function parseHoverTarget (e) {
-      this.parseTarget.apply(this, [e, this.triggerHover, true]);
-    },
-    /* This method is called on mouseOut to ensure the target matches the desired selector */
-    parseClearTarget: function parseClearTarget (e) {
-      this.parseTarget.apply(this, [e, this.clearHover, false]);
-    },
     /* Bind the listeners to the document for delegation */
     bindListeners: function bindListeners () {
-      document.addEventListener('mouseover', this.parseHoverTarget.bind(this), false);
-      document.addEventListener('mouseout', this.parseClearTarget.bind(this), false);
-      document.addEventListener('click', this.parseClearTarget.bind(this), false);
+      document.addEventListener('mouseover', this.toggleHover.bind(this, true), false);
+      document.addEventListener('mouseout', this.toggleHover.bind(this, false), false);
+      document.addEventListener('click', this.toggleHover.bind(this, false), false);
     },
     /* The hover text uses CSS transitions for animation, so by applying a solid opacity, we fade it onscreen */
     fadeHover: function fadeHover () {
@@ -106,7 +103,7 @@
             this.hoverElement.style.left = (this.maxDimensions.width - this.hoverElement.offsetWidth).toString() + 'px';
           } else {
             /* Text won't fit, align to viewport left */
-            this.hoverElement.style.left = '0px';
+            this.hoverElement.style.left = '0';
           }
         } else {
           /* Right space is widest dimension, so check if text will fit */
@@ -115,7 +112,7 @@
             this.hoverElement.style.left = Math.floor(relativePosition.right).toString() + 'px';
           } else {
             /* Text won't fit, so we align the right edge to the right edge of the viewport */
-            this.hoverElement.style.left = w - this.hoverElement.offsetWidth.toString() + 'px';
+            this.hoverElement.style.left = (w - this.hoverElement.offsetWidth).toString() + 'px';
           }
         }
         /* Check if the top space is the tallest dimension */
@@ -126,7 +123,7 @@
             this.hoverElement.style.top = (this.maxDimensions.height - this.hoverElement.offsetHeight).toString() + 'px';
           } else {
             /* Text does not fit, so position at top of viewport */
-            this.hoverElement.style.top = '0px';
+            this.hoverElement.style.top = '0';
           }
         } else {
           /* Bottom is tallest, see if test will fit */
@@ -135,7 +132,7 @@
             this.hoverElement.style.top = Math.floor(relativePosition.bottom).toString() + 'px';
           } else {
             /* Text won't fit, so position at the bottom of the viewport */
-            this.hoverElement.style.top = h - this.hoverElement.offsetHeight.toString() + 'px';
+            this.hoverElement.style.top = (h - this.hoverElement.offsetHeight).toString() + 'px';
           }
         }
         setTimeout(this.fadeHover.bind(this), 100);
