@@ -14,6 +14,8 @@
     rulers: {},
     /* Is the mouse still in hover state, used for check after delay */
     isHovering: false,
+    /* Track whether or not the hovertext is actually shown, used for clear method */
+    hoverIsVisible: false,
     /* The hoverText element built by the triggerHover method, we keep a reference so we can
      * remove the hoverText on mouseOut */
     hoverElement: {},
@@ -39,15 +41,15 @@
           };
       }
        // closest polyfill
-        Element.prototype.closest = Element.prototype.closest ||
-          function (selector) {
-            var el = this;
+      Element.prototype.closest = Element.prototype.closest ||
+        function (selector) {
+          var el = this;
 
-            while (el.matches && !el.matches(selector)) el = el.parentNode;
-            return el.matches ? el : null;
+          while (el.matches && !el.matches(selector)) el = el.parentNode;
+          return el.matches ? el : null;
         };
-
     },
+    /* Received boolean from the event listener to determine cursor hover state and call the appropriate action */
     toggleHover: function toggleHover (hoverState, e) {
       var hoverElement = e.target.closest('.hover-element');
       if (hoverElement) {
@@ -136,6 +138,7 @@
           }
         }
         setTimeout(this.fadeHover.bind(this), 100);
+        this.hoverIsVisible = true;
       }
     },
     /* Called on mouseOver when target element matches a link or button with associated hover text */
@@ -169,7 +172,10 @@
     },
     /* Remove the hover text on mouseOut */
     clearHover: function clearHover (target, e) {
-      this.docBody.removeChild(this.hoverElement);
+      if (this.hoverIsVisible) {
+        this.docBody.removeChild(this.hoverElement);
+        this.hoverIsVisible = false;
+      }
     },
     /* Initialization steps */
     initialize: function initialize () {
